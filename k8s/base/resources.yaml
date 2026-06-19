@@ -1,0 +1,139 @@
+---
+# ── Service ────────────────────────────────────────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: spring-ai-starter
+  namespace: spring-ai
+  labels:
+    app.kubernetes.io/name: spring-ai-starter
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: spring-ai-starter
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      protocol: TCP
+
+---
+# ── Ingress (nginx) ────────────────────────────────────────────────────────
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: spring-ai-starter
+  namespace: spring-ai
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+spec:
+  tls:
+    - hosts:
+        - api.example.com
+      secretName: spring-ai-tls
+  rules:
+    - host: api.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: spring-ai-starter
+                port:
+                  name: http
+
+---
+# ── ConfigMap ──────────────────────────────────────────────────────────────
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: spring-ai-config
+  namespace: spring-ai
+data:
+  datasource-url: "jdbc:postgresql://postgres-service:5432/springai"
+  redis-host: "redis-service"
+  mongodb-uri: "mongodb://mongo-service:27017/springai"
+  chroma-host: "chroma-service"
+  qdrant-host: "qdrant-service"
+  otel-endpoint: "http://otel-collector:4318/v1/traces"
+
+---
+# ── Secret (values managed externally — e.g. Sealed Secrets or Vault) ─────
+# DO NOT commit real values. Use `kubectl create secret` or external secrets.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: spring-ai-secrets
+  namespace: spring-ai
+type: Opaque
+stringData:
+  openai-api-key: "REPLACE_WITH_REAL_VALUE"
+  anthropic-api-key: "REPLACE_WITH_REAL_VALUE"
+  mistral-api-key: "REPLACE_WITH_REAL_VALUE"
+  db-username: "springai"
+  db-password: "REPLACE_WITH_REAL_VALUE"
+
+---
+# ── Horizontal Pod Autoscaler ──────────────────────────────────────────────
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: spring-ai-starter
+  namespace: spring-ai
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: spring-ai-starter
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+
+---
+# ── ServiceAccount ─────────────────────────────────────────────────────────
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: spring-ai-starter
+  namespace: spring-ai
+  labels:
+    app.kubernetes.io/name: spring-ai-starter
+
+---
+# ── Namespace ──────────────────────────────────────────────────────────────
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: spring-ai
+  labels:
+    app.kubernetes.io/managed-by: helm
+
+---
+# ── PodDisruptionBudget — keep at least 1 pod alive during node drain ─────
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: spring-ai-starter
+  namespace: spring-ai
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: spring-ai-starter

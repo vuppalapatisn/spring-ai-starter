@@ -1,0 +1,96 @@
+# ================================================================
+# Helm values.yaml — Spring AI Starter
+# Override any value with: helm install ... --set key=value
+# ================================================================
+
+replicaCount: 2
+
+image:
+  repository: youruser/spring-ai-starter
+  tag: latest
+  pullPolicy: Always
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  name: ""
+
+# ── Application ────────────────────────────────────────────────────────────
+env:
+  SPRING_PROFILES_ACTIVE: kubernetes
+  JAVA_OPTS: >-
+    -XX:+UseContainerSupport
+    -XX:MaxRAMPercentage=75.0
+
+# Secrets — override with real values or use external secrets manager
+secrets:
+  OPENAI_API_KEY: ""
+  ANTHROPIC_API_KEY: ""
+  MISTRAL_API_KEY: ""
+  DB_USERNAME: springai
+  DB_PASSWORD: ""
+
+# ── Infrastructure endpoints ───────────────────────────────────────────────
+config:
+  datasourceUrl: "jdbc:postgresql://postgres:5432/springai"
+  redisHost: redis
+  mongoUri: "mongodb://mongo:27017/springai"
+  chromaHost: chroma
+  qdrantHost: qdrant
+  otelEndpoint: "http://otel-collector:4318/v1/traces"
+
+# ── Service ────────────────────────────────────────────────────────────────
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8080
+
+# ── Ingress ────────────────────────────────────────────────────────────────
+ingress:
+  enabled: true
+  className: nginx
+  host: api.example.com
+  tls: true
+  tlsSecretName: spring-ai-tls
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+
+# ── Resources ──────────────────────────────────────────────────────────────
+resources:
+  requests:
+    cpu: 500m
+    memory: 512Mi
+  limits:
+    cpu: "2"
+    memory: 1Gi
+
+# ── Autoscaling ────────────────────────────────────────────────────────────
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+# ── Health probes ──────────────────────────────────────────────────────────
+probes:
+  liveness:
+    path: /actuator/health/liveness
+    initialDelaySeconds: 60
+    periodSeconds: 30
+  readiness:
+    path: /actuator/health/readiness
+    initialDelaySeconds: 30
+    periodSeconds: 10
+  startup:
+    path: /actuator/health
+    failureThreshold: 20
+    periodSeconds: 10
+
+# ── Pod Disruption Budget ──────────────────────────────────────────────────
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1

@@ -1,0 +1,114 @@
+---
+# service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "spring-ai-starter.fullname" . }}
+  labels:
+    {{- include "spring-ai-starter.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "spring-ai-starter.selectorLabels" . | nindent 4 }}
+
+---
+# ingress.yaml
+{{- if .Values.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "spring-ai-starter.fullname" . }}
+  labels:
+    {{- include "spring-ai-starter.labels" . | nindent 4 }}
+  annotations:
+    {{- toYaml .Values.ingress.annotations | nindent 4 }}
+spec:
+  {{- if .Values.ingress.className }}
+  ingressClassName: {{ .Values.ingress.className }}
+  {{- end }}
+  {{- if .Values.ingress.tls }}
+  tls:
+    - hosts:
+        - {{ .Values.ingress.host }}
+      secretName: {{ .Values.ingress.tlsSecretName }}
+  {{- end }}
+  rules:
+    - host: {{ .Values.ingress.host }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "spring-ai-starter.fullname" . }}
+                port:
+                  name: http
+{{- end }}
+
+---
+# hpa.yaml
+{{- if .Values.autoscaling.enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "spring-ai-starter.fullname" . }}
+  labels:
+    {{- include "spring-ai-starter.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "spring-ai-starter.fullname" . }}
+  minReplicas: {{ .Values.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.autoscaling.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.autoscaling.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.autoscaling.targetMemoryUtilizationPercentage }}
+{{- end }}
+
+---
+# configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "spring-ai-starter.fullname" . }}-config
+  labels:
+    {{- include "spring-ai-starter.labels" . | nindent 4 }}
+data:
+  SPRING_DATASOURCE_URL: {{ .Values.config.datasourceUrl | quote }}
+  SPRING_DATA_REDIS_HOST: {{ .Values.config.redisHost | quote }}
+  SPRING_DATA_MONGODB_URI: {{ .Values.config.mongoUri | quote }}
+  SPRING_AI_VECTORSTORE_CHROMA_CLIENT_HOST: {{ .Values.config.chromaHost | quote }}
+  SPRING_AI_VECTORSTORE_QDRANT_HOST: {{ .Values.config.qdrantHost | quote }}
+  MANAGEMENT_OTLP_TRACING_ENDPOINT: {{ .Values.config.otelEndpoint | quote }}
+
+---
+# secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ include "spring-ai-starter.fullname" . }}-secret
+  labels:
+    {{- include "spring-ai-starter.labels" . | nindent 4 }}
+type: Opaque
+stringData:
+  OPENAI_API_KEY: {{ .Values.secrets.OPENAI_API_KEY | quote }}
+  ANTHROPIC_API_KEY: {{ .Values.secrets.ANTHROPIC_API_KEY | quote }}
+  MISTRAL_API_KEY: {{ .Values.secrets.MISTRAL_API_KEY | quote }}
+  DB_USERNAME: {{ .Values.secrets.DB_USERNAME | quote }}
+  DB_PASSWORD: {{ .Values.secrets.DB_PASSWORD | quote }}

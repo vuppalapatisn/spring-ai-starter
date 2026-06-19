@@ -1,0 +1,133 @@
+version: '3.9'
+
+# ================================================================
+# Spring AI Ecosystem — Full Infrastructure Stack
+# Covers: Vector DBs, Memory, Observability
+# ================================================================
+
+services:
+
+  # ── Application ───────────────────────────────────────────────
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      MISTRAL_API_KEY: ${MISTRAL_API_KEY}
+      DB_USERNAME: springai
+      DB_PASSWORD: springai
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/springai
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_MONGODB_URI: mongodb://mongo:27017/springai
+      SPRING_AI_VECTORSTORE_CHROMA_CLIENT_HOST: chroma
+      SPRING_AI_VECTORSTORE_QDRANT_HOST: qdrant
+      MANAGEMENT_OTLP_TRACING_ENDPOINT: http://otel-collector:4318/v1/traces
+    depends_on:
+      - postgres
+      - redis
+      - mongo
+      - chroma
+      - qdrant
+    restart: unless-stopped
+
+  # ── PostgreSQL + pgvector ─────────────────────────────────────
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: springai
+      POSTGRES_USER: springai
+      POSTGRES_PASSWORD: springai
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # ── Redis (Cache + Vector Store + Chat Memory) ────────────────
+  redis:
+    image: redis/redis-stack:latest
+    ports:
+      - "6379:6379"
+      - "8001:8001"   # RedisInsight UI
+    volumes:
+      - redis_data:/data
+
+  # ── MongoDB (Long-term Memory) ────────────────────────────────
+  mongo:
+    image: mongo:7
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  # ── Chroma Vector DB ──────────────────────────────────────────
+  chroma:
+    image: chromadb/chroma:latest
+    ports:
+      - "8000:8000"
+    volumes:
+      - chroma_data:/chroma/chroma
+
+  # ── Qdrant Vector DB ──────────────────────────────────────────
+  qdrant:
+    image: qdrant/qdrant:latest
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+
+  # ── Ollama (local LLMs — Meta Llama, etc.) ───────────────────
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  # ── Observability Stack ───────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./docker/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./docker/grafana/dashboards:/etc/grafana/provisioning/dashboards
+    depends_on:
+      - prometheus
+
+  otel-collector:
+    image: otel/opentelemetry-collector:latest
+    ports:
+      - "4317:4317"   # gRPC
+      - "4318:4318"   # HTTP
+    volumes:
+      - ./docker/otel-collector.yml:/etc/otelcol/config.yaml
+
+volumes:
+  postgres_data:
+  redis_data:
+  mongo_data:
+  chroma_data:
+  qdrant_data:
+  ollama_data:
+  prometheus_data:
+  grafana_data:

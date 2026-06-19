@@ -1,0 +1,46 @@
+# Maven
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+# IDE
+.idea/
+*.iml
+*.iws
+.vscode/
+*.class
+*.jar
+*.war
+*.ear
+
+# Spring Boot
+*.pid
+*.pid.lock
+
+# Logs
+*.log
+logs/
+
+# Environment — NEVER commit secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# K8s secrets — use external secrets manager
+k8s/base/resources.yaml.bak
+**/kubeconfig
+
+# Helm
+helm/**/charts/
+helm/**/.helmignore
+
+# Docker
+.dockerignore
+docker-compose.override.yml
+
+# OS
+.DS_Store
+Thumbs.db
