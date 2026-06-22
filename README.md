@@ -5,6 +5,62 @@ Production-ready Spring Boot starter covering the full Spring AI ecosystem stack
 ## Architecture
 
 ```
+┌─────────────────────────────────────────────────────────────────┐
+│                          CLIENTS                                │
+│          Browser / curl      Mobile / SDK      Swagger UI       │
+└───────────────────────┬─────────────────────────────────────────┘
+                        │ HTTP / SSE
+┌───────────────────────▼─────────────────────────────────────────┐
+│           REST API LAYER  (Spring MVC + Spring Security)        │
+│  /api/chat  /api/rag  /api/agent  /api/mcp  /api/embedding      │
+│  /actuator/health  /actuator/prometheus  /swagger-ui.html       │
+└───────────────────────┬─────────────────────────────────────────┘
+                        │
+┌───────────────────────▼─────────────────────────────────────────┐
+│                   SPRING AI MODULES                             │
+│  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌──────┐ ┌────────────┐  │
+│  │  Chat   │ │   RAG   │ │  Agent  │ │ MCP  │ │ Evaluation │  │
+│  │ Simple  │ │ Ingest  │ │  Tool   │ │ SSE/ │ │ Relevancy  │  │
+│  │ Stream  │ │ Chunk   │ │ Calling │ │STDIO │ │ Hallucinate│  │
+│  │ Memory  │ │Retrieve │ │  ReAct  │ │Tools │ │  Safety    │  │
+│  └─────────┘ └─────────┘ └─────────┘ └──────┘ └────────────┘  │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │  AiConfig — ChatClient beans wired per feature:          │   │
+│  │  defaultChatClient · ragChatClient · memoryChatClient    │   │
+│  │  claudeChatClient (Anthropic)                            │   │
+│  └──────────────────────────────────────────────────────────┘   │
+└──────────┬──────────────────────────────────┬───────────────────┘
+           │                                  │
+┌──────────▼──────────┐          ┌────────────▼───────────────────┐
+│    LLM PROVIDERS    │          │        VECTOR STORES           │
+│  OpenAI  (GPT-4o)  │          │  pgvector (default @Primary)   │
+│  Anthropic (Claude) │          │  Redis · Chroma · Qdrant       │
+│  Google  (Gemini)  │          └────────────────────────────────┘
+│  Mistral · Ollama  │
+└──────────┬──────────┘
+           │
+┌──────────▼──────────────────────────────────────────────────────┐
+│                        PERSISTENCE                              │
+│   PostgreSQL (JPA + pgvector)  Redis (chat memory)  MongoDB    │
+└──────────┬──────────────────────────────────────────────────────┘
+           │
+┌──────────▼──────────────────────────────────────────────────────┐
+│                       OBSERVABILITY                             │
+│      Prometheus (:9090)   Grafana (:3000)   OpenTelemetry      │
+│      AiObservability — custom metrics: latency, tokens, RAG    │
+└─────────────────────────────────────────────────────────────────┘
+
+RAG Data Flow:
+  Upload Doc → Chunk + Embed → Vector Store → Similarity Search
+             → LLM + Context → Answer + Sources
+
+All infrastructure provisioned via:  docker-compose up -d
+Deployment: Docker · Kubernetes (Helm + Kustomize) · GitHub Actions
+```
+
+### Module map
+
+```
 spring-ai-starter/
 ├── src/main/java/com/example/springai/
 │   ├── SpringAiStarterApplication.java     # Entry point

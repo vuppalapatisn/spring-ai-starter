@@ -58,31 +58,37 @@
         <dependency>
             <groupId>org.springframework.ai</groupId>
             <artifactId>spring-ai-openai-spring-boot-starter</artifactId>
+            <version>${spring-ai.version}</version>
         </dependency>
         <!-- Anthropic Claude -->
         <dependency>
             <groupId>org.springframework.ai</groupId>
             <artifactId>spring-ai-anthropic-spring-boot-starter</artifactId>
+            <version>${spring-ai.version}</version>
         </dependency>
         <!-- MCP Client — connects Claude to any MCP-compliant tool server -->
         <dependency>
             <groupId>org.springframework.ai</groupId>
             <artifactId>spring-ai-mcp-client-spring-boot-starter</artifactId>
+            <version>${spring-ai.version}</version>
         </dependency>
         <!-- Google Gemini -->
         <dependency>
             <groupId>org.springframework.ai</groupId>
             <artifactId>spring-ai-vertex-ai-gemini-spring-boot-starter</artifactId>
+            <version>${spring-ai.version}</version>
         </dependency>
         <!-- Mistral AI -->
         <dependency>
             <groupId>org.springframework.ai</groupId>
             <artifactId>spring-ai-mistral-ai-spring-boot-starter</artifactId>
+            <version>${spring-ai.version}</version>
         </dependency>
         <!-- Ollama (Meta Llama, local models) -->
         <dependency>
             <groupId>org.springframework.ai</groupId>
             <artifactId>spring-ai-ollama-spring-boot-starter</artifactId>
+            <version>${spring-ai.version}</version>
         </dependency>
 
         <!-- ===================== VECTOR STORES ===================== -->
@@ -90,21 +96,25 @@
         <dependency>
             <groupId>org.springframework.ai</groupId>
             <artifactId>spring-ai-pgvector-store-spring-boot-starter</artifactId>
+            <version>${spring-ai.version}</version>
         </dependency>
         <!-- Redis Vector Store -->
         <dependency>
             <groupId>org.springframework.ai</groupId>
             <artifactId>spring-ai-redis-store-spring-boot-starter</artifactId>
+            <version>${spring-ai.version}</version>
         </dependency>
         <!-- Chroma -->
         <dependency>
             <groupId>org.springframework.ai</groupId>
             <artifactId>spring-ai-chroma-store-spring-boot-starter</artifactId>
+            <version>${spring-ai.version}</version>
         </dependency>
         <!-- Qdrant -->
         <dependency>
             <groupId>org.springframework.ai</groupId>
             <artifactId>spring-ai-qdrant-store-spring-boot-starter</artifactId>
+            <version>${spring-ai.version}</version>
         </dependency>
 
         <!-- ===================== MEMORY & STATE ===================== -->
@@ -124,10 +134,12 @@
         <dependency>
             <groupId>org.springframework.ai</groupId>
             <artifactId>spring-ai-pdf-document-reader</artifactId>
+            <version>${spring-ai.version}</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.ai</groupId>
             <artifactId>spring-ai-tika-document-reader</artifactId>
+            <version>${spring-ai.version}</version>
         </dependency>
 
         <!-- ===================== OBSERVABILITY ===================== -->
@@ -179,6 +191,7 @@
         <dependency>
             <groupId>org.springframework.ai</groupId>
             <artifactId>spring-ai-test</artifactId>
+            <version>${spring-ai.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -199,9 +212,10 @@
 
     <repositories>
         <repository>
-            <id>spring-milestones</id>
-            <name>Spring Milestones</name>
-            <url>https://repo.spring.io/milestone</url>
+            <id>spring-releases</id>
+            <name>Spring Releases</name>
+            <url>https://repo.spring.io/release</url>
+            <snapshots><enabled>false</enabled></snapshots>
         </repository>
     </repositories>
 </project>
